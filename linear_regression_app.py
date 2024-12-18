@@ -1,76 +1,74 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
-# Function to perform Linear Regression
-def perform_linear_regression(df, target_column):
-    # Split the dataset into features and target
-    X = df.drop(target_column, axis=1)
-    y = df[target_column]
+# Streamlit App Title
+st.title("Linear Regression with CSV Data")
 
-    # Split data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Step 1: Upload CSV File
+st.sidebar.header("Upload CSV File")
+uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
 
-    # Create a Linear Regression model
-    model = LinearRegression()
+# Step 2: Allow user to specify libraries (optional)
+# If necessary, you can provide a custom text area for users to input additional libraries or settings
 
-    # Train the model
-    model.fit(X_train, y_train)
+# Step 3: Display CSV Data and Select Columns
+if uploaded_file is not None:
+    # Load the CSV data into a DataFrame
+    df = pd.read_csv(uploaded_file)
 
-    # Make predictions
-    y_pred = model.predict(X_test)
+    # Display the first few rows of the dataframe
+    st.write("Dataset Preview:")
+    st.write(df.head())
 
-    # Calculate metrics
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
+    # Step 4: Select the independent (X) and dependent (y) variables
+    st.sidebar.header("Select Columns for Regression")
 
-    return model, X_test, y_test, y_pred, mse, r2
+    # User selects which column to use as X (independent variable) and y (dependent variable)
+    columns = df.columns.tolist()
 
-# Streamlit UI for file upload and other inputs
-def main():
-    st.title("Linear Regression with Streamlit")
+    # Select the column for independent variable (X)
+    X_column = st.sidebar.selectbox("Select independent variable (X)", columns)
 
-    # File Upload
-    uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
-    if uploaded_file is not None:
-        # Load the dataset
-        df = pd.read_csv(uploaded_file)
+    # Select the column for dependent variable (y)
+    y_column = st.sidebar.selectbox("Select dependent variable (y)", columns)
 
-        # Display the dataset
-        st.subheader("Dataset Overview")
-        st.write(df.head())
+    if X_column != y_column:
+        # Extract the features (X) and target (y) variables
+        X = df[[X_column]].values  # Independent variable
+        y = df[y_column].values   # Dependent variable
 
-        # Select target column for regression
-        target_column = st.selectbox("Select the target column", df.columns)
+        # Step 5: Split the data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Perform Linear Regression
-        if st.button("Run Linear Regression"):
-            model, X_test, y_test, y_pred, mse, r2 = perform_linear_regression(df, target_column)
+        # Step 6: Train the Linear Regression model
+        model = LinearRegression()
+        model.fit(X_train, y_train)
 
-            # Display model performance
-            st.subheader("Model Performance")
-            st.write(f"Mean Squared Error (MSE): {mse:.2f}")
-            st.write(f"R-squared: {r2:.2f}")
+        # Step 7: Make Predictions
+        y_pred = model.predict(X_test)
 
-            # Plot the results
-            st.subheader("Prediction vs Actual")
-            plt.figure(figsize=(8, 6))
-            plt.scatter(y_test, y_pred, color='blue', label='Predictions')
-            plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linestyle='--', label="Ideal Fit")
-            plt.xlabel("Actual Values")
-            plt.ylabel("Predicted Values")
-            plt.title("Actual vs Predicted values")
-            plt.legend()
-            st.pyplot()
+        # Step 8: Display Results
+        st.write(f"### Model Results")
+        st.write(f"**Mean Squared Error**: {mean_squared_error(y_test, y_pred)}")
+        st.write(f"**R^2 Score**: {r2_score(y_test, y_pred)}")
 
-            # Show the regression coefficients
-            st.subheader("Model Coefficients")
-            st.write(f"Intercept: {model.intercept_}")
-            st.write(f"Coefficients: {model.coef_}")
+        # Step 9: Plot the Regression Line
+        st.write(f"### Regression Line Plot")
+        plt.figure(figsize=(10, 6))
+        plt.scatter(X_test, y_test, color='blue', label='Actual Data')
+        plt.plot(X_test, y_pred, color='red', label='Regression Line')
+        plt.xlabel(X_column)
+        plt.ylabel(y_column)
+        plt.title(f"Linear Regression: {X_column} vs {y_column}")
+        plt.legend()
+        st.pyplot(plt)
 
-if __name__ == "__main__":
-    main()
+    else:
+        st.error("Independent and Dependent variables cannot be the same!")
+else:
+    st.info("Please upload a CSV file to get started.")
